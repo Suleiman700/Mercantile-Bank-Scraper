@@ -1,0 +1,32 @@
+# Node.js
+node_modules/
+npm-debug.log
+
+# Environment variables
+.env
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data directory
+/data/
+
+# Debug files
+*.pem
+*.pem
+
+# Puppeteer local data
+.local-chromium/
+
+# Build output
+build/
+dist/
