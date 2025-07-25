@@ -22,14 +22,14 @@ A Node.js application that scrapes banking data from Mercantile Bank using Puppe
 
 ```bash
 # Build the image
-docker build -t scraper-app .
+docker build -t mercantile-bank-scraper .
 ```
 
 ### 2. Run the Container
 
 ```bash
 # Run the container with a name and port mapping
-docker run -d -p 8083:8083 --name my-scraper scraper-app
+docker run -d -p 8083:8083 --name mercantile-bank-scraper mercantile-bank-scraper
 ```
 
 The application will be available at `http://localhost:8083`
