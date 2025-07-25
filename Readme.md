@@ -192,3 +192,44 @@ This project is for educational and personal use only. Please ensure compliance 
 
 ## Disclaimer
 This software is provided "as is" without warranty. Use at your own risk. The authors are not responsible for any misuse or damage caused by this software.
+
+---
+
+## Note
+
+To run Puppeteer inside a Docker container you should install Google Chrome manually because, in contrast to the Chromium package offered by Debian, Chrome only offers the latest stable version.
+
+Install browser on **Dockerfile** :
+
+```bash
+FROM node:18
+
+# We don't need the standalone Chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
+
+# Install Google Chrome Stable and fonts
+# Note: this installs the necessary libs to make the browser work with Puppeteer.
+RUN apt-get update && apt-get install curl gnupg -y \
+  && curl --location --silent https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+  && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
+  && apt-get update \
+  && apt-get install google-chrome-stable -y --no-install-recommends \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install your app here...
+```
+
+Additionally, If you are in an ARM-based CPU (Apple M1) like me, you should use the `--platform linux/amd64` argument when you build the Docker image.
+
+Build Command : `docker build --platform linux/amd64 -t <image-name> .`
+
+**Note** : After updating your `Dockerfile`, make sure to update the puppeteer `script`, while launching the puppeteer browser add executable path with the path to chrome we recently installed on the machine.
+
+```javascript
+const browser = await launch({
+   headless: true,
+   defaultViewport: null,
+   executablePath: '/usr/bin/google-chrome',
+   args: ['--no-sandbox'],
+});
+```
