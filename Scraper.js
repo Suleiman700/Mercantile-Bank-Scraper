@@ -405,6 +405,9 @@ class Scraper {
     }
 }
 
+// Export the Scraper class
+module.exports = { Scraper };
+
 // Example usage
 async function main() {
     // Enable debug mode and show browser window
@@ -441,6 +444,6 @@ async function main() {
 }
 
 // Run the example
-main();
+// main();
 
 module.exports = Scraper;
