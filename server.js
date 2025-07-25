@@ -4,10 +4,9 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
 const Scraper = require('./Scraper');
-require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8083;
 
 // Middleware
 app.use(cors());
@@ -27,22 +26,24 @@ app.post('/api/scrape', async (req, res) => {
 
         // Validate input
         if (!id || !password || !code) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Missing required fields: id, password, code' 
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: id, password, code'
             });
         }
 
-        // Set environment variables for the scraper
-        process.env.CREDENTIALS_ID = id;
-        process.env.CREDENTIALS_PASSWORD = password;
-        process.env.CREDENTIALS_CODE = code;
-
-        // Initialize and run the scraper
-        const scraper = new Scraper({ 
+        // Pass credentials directly to the scraper
+        const scraper = new Scraper({
             debug: true,
-            headless: true
+            headless: true,
+            credentials: { id, password, code }
         });
+
+        // // Initialize and run the scraper
+        // const scraper = new Scraper({
+        //     debug: true,
+        //     headless: true
+        // });
 
         try {
             await scraper.initialize();
@@ -55,9 +56,9 @@ app.post('/api/scrape', async (req, res) => {
                 const filename = `scrape-${timestamp}.json`;
                 const filepath = path.join(dataDir, filename);
                 fs.writeFileSync(filepath, JSON.stringify(data, null, 2));
-                
-                return res.json({ 
-                    success: true, 
+
+                return res.json({
+                    success: true,
                     message: 'Data saved successfully',
                     filename
                 });
