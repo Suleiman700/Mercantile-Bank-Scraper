@@ -16,6 +16,27 @@ A Node.js application that scrapes banking data from Mercantile Bank using Puppe
 - Docker installed on your system
 - Valid Mercantile Bank credentials (ID, password, and security code)
 
+## Before you start
+
+This project has 2 Dockerfile:
+1. Dockerfile - normal (for non-Raspberry Pi devices)
+2. Dockerfile - rpi (for Raspberry Pi devices)
+
+Make sure to rename the wanted docker file to `Dockerfile`, And also in the `Scraper.js` file, make sure to change the launch options to the wanted one.:
+```javascript
+  const launchOptions = {
+      // normal
+      headless: true,
+      defaultViewport: null,
+      args: ['--no-sandbox'],
+      // rpi4
+      // headless: true,
+      // defaultViewport: null,
+      // executablePath: '/usr/bin/chromium',
+      // args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  };
+```
+
 ## Quick Start
 
 ### 1. Build the Docker Image

@@ -49,7 +49,6 @@ class Scraper {
             // normal
             headless: true,
             defaultViewport: null,
-            executablePath: '/usr/bin/google-chrome',
             args: ['--no-sandbox'],
             // rpi4
             // headless: true,
@@ -196,7 +195,7 @@ class Scraper {
 
             // Make the API request directly
             const response = await this.page.evaluate(async () => {
-                const response = await fetch(`/Titan/gatewayAPI/debitAuthorizations/list/${accountNumber}/NotRequired`, {
+                const response = await fetch(`/Titan/gatewayAPI/debitAuthorizations/list/${this.accountNumber}/NotRequired`, {
                     headers: {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json'
