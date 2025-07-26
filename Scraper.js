@@ -46,20 +46,16 @@ class Scraper {
     async initialize() {
         this.log('Initializing browser...');
         const launchOptions = {
+            // normal
             headless: true,
             defaultViewport: null,
             executablePath: '/usr/bin/google-chrome',
             args: ['--no-sandbox'],
-            // headless: this.headless,
+            // rpi4
+            // headless: true,
             // defaultViewport: null,
-            // // args: ['--disable-web-security'],
+            // executablePath: '/usr/bin/chromium',
             // args: ['--no-sandbox', '--disable-setuid-sandbox'],
-            // // args: ['--start-maximized', '--disable-web-security'],
-            // ...(this.debug && {
-            //     headless: false,
-            //     devtools: true,
-            //     slowMo: 50 // Slow down by 50ms to see what's happening
-            // })
         };
 
         // Create a directory for saved data if it doesn't exist

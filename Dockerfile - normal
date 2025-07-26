@@ -31,3 +31,6 @@ ENV PORT=8083
 
 # Start the app
 CMD ["node", "server.js"]
+
+# docker build -t mercantile-bank-scraper .
+# docker run -p 8083:8083 mercantile-bank-scraper
