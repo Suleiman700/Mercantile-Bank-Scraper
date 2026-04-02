@@ -49,12 +49,25 @@ class Scraper {
             // normal
             headless: true,
             defaultViewport: null,
-            args: ['--no-sandbox'],
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-blink-features=AutomationControlled',
+                '--disable-dev-shm-usage',
+                '--disable-gpu'
+            ]
             // rpi4
             // headless: true,
             // defaultViewport: null,
             // executablePath: '/usr/bin/chromium',
             // args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            // args: [
+            //     '--no-sandbox',
+            //     '--disable-setuid-sandbox',
+            //     '--disable-blink-features=AutomationControlled',
+            //     '--disable-dev-shm-usage',
+            //     '--disable-gpu'
+            // ]
         };
 
         // Create a directory for saved data if it doesn't exist
@@ -75,6 +88,18 @@ class Scraper {
             // Create a new page
             this.page = await this.browser.newPage();
             this.log('New page created');
+
+            // Fake real browser
+            await this.page.setUserAgent(
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36'
+            );
+
+            // Remove webdriver flag
+            await this.page.evaluateOnNewDocument(() => {
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => false,
+                });
+            });
 
             // Set a default timeout for page actions
             this.page.setDefaultTimeout(30000);
@@ -139,46 +164,62 @@ class Scraper {
 
     async login() {
         if (!this.page) {
-            const errorMsg = 'Page not initialized. Call initialize() first.';
-            this.log(errorMsg);
-            throw new Error(errorMsg);
+            throw new Error('Page not initialized. Call initialize() first.');
         }
 
         try {
             this.log('Navigating to login page...');
-            await this.page.goto('https://start.telebank.co.il/login/?bank=m', { waitUntil: 'networkidle2' });
+            await this.page.goto('https://start.telebank.co.il/login/?bank=m', {
+                waitUntil: 'domcontentloaded',
+                timeout: 60000
+            });
 
-            this.log('Entering credentials...');
+            // Wait for inputs (VERY IMPORTANT on RPi)
+            await this.page.waitForSelector('#tzId', { timeout: 60000 });
 
-            // Enter credentials using direct DOM manipulation for speed
-            await this.page.evaluate(({id, password, code}) => {
-                document.querySelector('input#tzId').value = id;
-                document.querySelector('input#tzPassword').value = password;
-                document.querySelector('input#aidnum').value = code;
+            this.log('Typing credentials...');
 
-                // Trigger input events
-                ['input', 'change'].forEach(eventType => {
-                    document.querySelector('input#tzId').dispatchEvent(new Event(eventType, { bubbles: true }));
-                    document.querySelector('input#tzPassword').dispatchEvent(new Event(eventType, { bubbles: true }));
-                    document.querySelector('input#aidnum').dispatchEvent(new Event(eventType, { bubbles: true }));
-                });
-            }, this.credentials);
+            await this.page.type('#tzId', this.credentials.id, { delay: 50 });
+            await this.page.type('#tzPassword', this.credentials.password, { delay: 50 });
+            await this.page.type('#aidnum', this.credentials.code, { delay: 50 });
 
-            this.log('Clicking login button...');
-            await Promise.all([
-                this.page.waitForNavigation({ waitUntil: 'networkidle2' }),
-                this.page.click('.login-form button[type="submit"]')
-            ]);
+            this.log('Clicking login...');
 
-            this.log('Successfully logged in');
+            await this.page.evaluate(() => {
+                const btn = document.querySelector('.login-form button[type="submit"]');
+                if (!btn) throw new Error('Login button not found');
+
+                btn.scrollIntoView();
+                btn.removeAttribute('disabled');
+                btn.click();
+            });
+
+            // ✅ WAIT FOR LOGIN SUCCESS (SPA FIX)
+            this.log('Waiting for login success...');
+
+            await this.page.waitForFunction(() => {
+                return !window.location.href.includes('login');
+            }, { timeout: 60000 });
+
+            // Optional: wait for API call
+            await this.page.waitForResponse(res =>
+                    res.url().includes('/gatewayAPI/userAccountsData') && res.status() === 200,
+                { timeout: 60000 }
+            );
+
+            // FINAL CHECK
+            if (this.page.url().includes('login')) {
+                throw new Error('Login failed - still on login page');
+            }
+
+            this.log('✅ Successfully logged in');
+
         } catch (error) {
-            const errorMsg = `Error during login: ${error instanceof Error ? error.message : String(error)}`;
-            this.log(errorMsg);
+            this.log(`Error during login: ${error.message}`);
 
-            // Take a screenshot on error if debug is enabled
             if (this.debug && this.page) {
-                await this.page.screenshot({ path: 'debug-error.png' });
-                this.log('Error screenshot saved as debug-error.png');
+                await this.page.screenshot({ path: 'debug-error.png', fullPage: true });
+                this.log('📸 Screenshot saved: debug-error.png');
             }
 
             throw error;
@@ -194,8 +235,8 @@ class Scraper {
             this.log('Fetching debit authorizations list...');
 
             // Make the API request directly
-            const response = await this.page.evaluate(async () => {
-                const response = await fetch(`/Titan/gatewayAPI/debitAuthorizations/list/${this.accountNumber}/NotRequired`, {
+            const response = await this.page.evaluate(async (accountNumber) => {
+                const response = await fetch(`/Titan/gatewayAPI/debitAuthorizations/list/${accountNumber}/NotRequired`, {
                     headers: {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json'
@@ -204,7 +245,7 @@ class Scraper {
                     credentials: 'include'
                 });
                 return response.json();
-            });
+            }, accountNumber);
 
             this.log('Successfully fetched debit authorizations list');
             return response;
